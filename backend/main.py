@@ -83,10 +83,14 @@ async def save_note(hash: str, request: Request):
     if p:
         gens[hash] = p
     return {"success": True}
-
+from genlang.generator import generate_from_json
 @app.get("/gen/{hash}")
 def gen_text(hash: str, start: str = "START"):
-    return gens.get(hash, "")
+    print(f"gen_text {hash} {start}")
+    payload = {"rules":gens.get(hash, "")}
+    if False:
+        payload.update({"start":start})
+    return generate_from_json(payload)
 
 @app.get("/assets/{path:path}")
 def static_assets(path: str):

@@ -1,11 +1,12 @@
 // GenLang PEG grammar for peggy.js
 Start
-	= __ rules:RuleList* __ { return rules; }
+	= RuleList
 
-RuleList
-	= head:Rule tail:(__ Rule)* {
-			let result = [head];
-			for (let t of tail) result.push(t[1]);
+RuleList "rule_list"
+	= head:Rule tail:(__ Rule)* __{
+			let result_ = [head];
+			for (let t of tail) result_.push(t[1]);
+      let result = Object.fromEntries(result_.map(e=>[e.name,e.options]));
 			return result;
 		}
 
@@ -15,33 +16,36 @@ Rule
 		}
 
 OptionList
-	= first:Option rest:(__ '|' __ Option)* {
+	= first:Option rest:(__ '|' _ Option)* {
 			let result = [first];
 			for (let r of rest) result.push(r[3]);
 			return result;
 		}
 
 Option
-  = elems:Element+ { return elems; }
+  = prob:ProbElement* _
+  elems:(Element _)+ { 
+    let result = {elems:elems.map(e=>e[0])};
+    if(prob.length > 0) {
+        result.prob = prob[0].prob;
+      }
+    return result;
+  }
 
 Element
-  = ProbElement
-  / RefElement
-  / TerminalElement
-  / ExprElement
+  =   (RefElement
+  / TerminalElement)
+//  / ExprElement
 
 ProbElement
-  = '^' prob:ProbExpr __ { return { type: 'prob', prob }; }
+  = '^' prob:ProbExpr _ { return { type: 'prob', prob }; }
 
 RefElement
-  = '$' __ id:Identifier { return { type: 'ref', ref: id }; }
+  = '$' __ id:(QuotedString/Identifier) { return { type: 'ref', ref: id }; }
 
 TerminalElement
   = str:QuotedString { return { type: 'terminal', value: str }; }
   / id:Identifier { return { type: 'terminal', value: id }; }
-
-ExprElement
-  = expr:Expression { return { type: 'expr', expr }; }
 
 ProbExpr
 	= '[' expr:Expression ']' { return expr; }
@@ -74,5 +78,5 @@ Identifier
 
 Number
 	= digits:[0-9]+ { return parseInt(text(), 10); }
-
+_ = [ \t]*
 __ = [ \t\r\n]*
