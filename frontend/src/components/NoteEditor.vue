@@ -1,9 +1,13 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 const title = ref(window.location.pathname)
 const content = ref('')
 const hash = ref('')
-const saveStatus = ref('saved') // 状态：saved/saving/error
+// 四态 + 额外错误态：
+// idle(无改动) / saving(有改动等待上传) / saved_recent(正常文本已上传5秒内) / gen_saved(生成器文本已上传) / error
+const saveStatus = ref('idle')
+let savedRecentTimer = null
+const lastSavedContent = ref('')
 
 function getHashFromPath() {
     const m = window.location.pathname.match(/\/([^\/]+)$/)
@@ -16,6 +20,8 @@ function loadNote() {
         .then(res => res.json())
         .then(data => {
             content.value = data.content || ''
+            lastSavedContent.value = content.value
+            saveStatus.value = 'idle'
             console.log('内容已加载')
         })
         .catch(e => {
@@ -32,6 +38,12 @@ function handlePathChange() {
 onMounted(() => {
     handlePathChange()
     window.addEventListener('popstate', handlePathChange)
+    window.addEventListener('keydown', handleKeydown)
+})
+
+onBeforeUnmount(() => {
+    window.removeEventListener('popstate', handlePathChange)
+    window.removeEventListener('keydown', handleKeydown)
 })
 
 // 监听 hash 变化（如通过跳转按钮）
@@ -73,7 +85,20 @@ async function saveNote() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
-        saveStatus.value = 'saved'
+        lastSavedContent.value = content.value
+        // 生成器文本优先显示专用态；否则显示5秒“已上传”态
+        if (payload.gen) {
+            saveStatus.value = 'gen_saved'
+        } else {
+            saveStatus.value = 'saved_recent'
+            if (savedRecentTimer) clearTimeout(savedRecentTimer)
+            savedRecentTimer = setTimeout(() => {
+                // 若这段时间内没有新的改动，则回到无改动态
+                if (content.value === lastSavedContent.value && saveStatus.value === 'saved_recent') {
+                    saveStatus.value = 'idle'
+                }
+            }, 5000)
+        }
 
     } catch (e) {
         saveStatus.value = 'error'
@@ -86,21 +111,41 @@ watch(content, () => {
     saveStatus.value = 'saving'
     throttledSave();
 })
+
+function handleKeydown(e) {
+    // Ctrl+S 或 Cmd+S 立即保存
+    const isSaveHotkey = (e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')
+    if (isSaveHotkey) {
+        e.preventDefault()
+        saveNote()
+    }
+}
 </script>
 
 <template>
     <main class="container">
         <div class="save-status-fixed">
-            <template v-if="saveStatus === 'saved'">
+            <template v-if="saveStatus === 'idle'">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                    <circle cx="9" cy="9" r="8" stroke="#42b883" stroke-width="2" />
-                    <path d="M5 9l2.5 2.5L13 6" stroke="#42b883" stroke-width="2" fill="none" />
+                    <circle cx="9" cy="9" r="8" stroke="#9aa0a6" stroke-width="2" />
                 </svg>
             </template>
             <template v-else-if="saveStatus === 'saving'">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                     <circle cx="9" cy="9" r="8" stroke="#646cff" stroke-width="2" />
                     <path d="M9 4v5l3 3" stroke="#646cff" stroke-width="2" fill="none" />
+                </svg>
+            </template>
+            <template v-else-if="saveStatus === 'saved_recent'">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <circle cx="9" cy="9" r="8" stroke="#42b883" stroke-width="2" />
+                    <path d="M5 9l2.5 2.5L13 6" stroke="#42b883" stroke-width="2" fill="none" />
+                </svg>
+            </template>
+            <template v-else-if="saveStatus === 'gen_saved'">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <circle cx="9" cy="9" r="8" stroke="#10b981" stroke-width="2" />
+                    <path d="M6 9h6M9 6v6" stroke="#10b981" stroke-width="2" />
                 </svg>
             </template>
             <template v-else>

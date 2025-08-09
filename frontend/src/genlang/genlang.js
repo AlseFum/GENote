@@ -691,10 +691,19 @@ function peg$parse(input, options) {
   }
 
   function peg$parseTerminalElement() {
-    let s0, s1;
+    let s0, s1, s2;
 
     s0 = peg$currPos;
-    s1 = peg$parseQuotedString();
+    s1 = [];
+    s2 = peg$parseEscapedChar();
+    if (s2 !== peg$FAILED) {
+      while (s2 !== peg$FAILED) {
+        s1.push(s2);
+        s2 = peg$parseEscapedChar();
+      }
+    } else {
+      s1 = peg$FAILED;
+    }
     if (s1 !== peg$FAILED) {
       peg$savedPos = s0;
       s1 = peg$f6(s1);
