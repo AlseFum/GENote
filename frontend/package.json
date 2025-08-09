@@ -1,0 +1,20 @@
+{
+  "name": "noteserver",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build_gen":"peggy --format es ../genlang/genlang.peggy -o ./src/genlang/genlang.js"
+  },
+  "dependencies": {
+    "vue": "^3.5.18"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "peggy": "^5.0.6",
+    "vite": "^7.1.0"
+  }
+}

@@ -1,0 +1,56 @@
+#本文档用于定义用于生成随机文本的语言
+```GenLang
+# `#`开头表示本行注释
+
+# 基本语法
+Item1=subItem1
+        |subItem2
+        |subItem3
+
+# START 是特殊项，默认入口
+START=$Item1
+    |$digit
+
+# 终端项可以是连续Unicode或双引号包裹
+subItem1= $"string identifier example"
+"string identifier example"=$digit SIE
+
+# 概率语法
+subItem2=chance1 | ^6 chance2
+subItem3=chance1 | ^(34*IS_WEB)
+
+# 变量声明与引用
+var1:=True
+var2:=23
+
+# 支持表达式
+exprItem=$digit | ^(rand()%2==0) $letter
+
+# 条件语法
+condItem=if($var1) thenA | if(!$var1) thenB
+
+# 嵌套与分组
+groupItem=(A|B|C) $digit
+
+# 转义与特殊字符
+specialItem="\n" | "\t" | "\\"
+
+# 函数调用（可扩展）
+callItem=func($digit, $letter)
+
+# 预定义变量
+HASHNAME:="abc123"
+USER:="guest"
+
+# JS语法块（可选扩展）
+fun:=(args)=>{ return args[0]+1; }
+
+# 进阶示例
+sentence=$subject $verb $object
+subject="猫"|"狗"|"小孩"
+verb="吃"|"看"|"喜欢"
+object="鱼"|"电视"|"苹果"
+
+# 条件与概率结合
+complexItem=^2 $subject | ^(!!if($var2>10)) $object
+```

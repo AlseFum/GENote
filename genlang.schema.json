@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GenLang 生成规则",
+  "type": "object",
+  "description": "用于定义随机文本生成的规则结构。not implemented",
+  "properties": {
+    "rules": {
+      "type": "object",
+      "description": "所有非终端项的定义",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "properties": {
+                "ref": { "type": "string", "description": "引用的非终端项" },
+                "prob": { "type": "number", "description": "概率权重，可选" },
+                "expr": { "type": "string", "description": "表达式，可选" }
+              },
+              "required": ["ref"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "variables": {
+      "type": "object",
+      "description": "变量声明",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "number" },
+          { "type": "boolean" }
+        ]
+      }
+    },
+    "start": {
+      "type": "string",
+      "description": "入口项（如START）"
+    }
+  },
+  "required": ["rules", "start"]
+}
