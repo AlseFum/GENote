@@ -96,6 +96,7 @@ def expand_option(opt: List[Dict[str, Any]],
     parts: List[str] = []
 
     for el in opt.get("elems",[]):
+        print(f"[el]{el}")
         t = el.get("type")
         if t is None:
             # 只有 prob 的权重元素，忽略输出

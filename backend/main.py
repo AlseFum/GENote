@@ -2,23 +2,24 @@ import os
 import json
 import threading
 import time
+# import path
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-# 备份相关代码
-DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../data'))
-os.makedirs(DATA_DIR, exist_ok=True)
-frontend_dist = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../frontend/dist'))
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), '../frontend/dist'))
+
+backup_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../data'))
+os.makedirs(backup_dir, exist_ok=True)
+
 
 def get_latest_backup():
-    files = [f for f in os.listdir(DATA_DIR) if f.startswith('backup_') and f.endswith('.json')]
+    files = [f for f in os.listdir(backup_dir) if f.startswith('backup_') and f.endswith('.json')]
     if not files:
         return None
     files.sort(reverse=True)
-    return os.path.join(DATA_DIR, files[0])
+    return os.path.join(backup_dir, files[0])
 
 def load_backup():
     path = get_latest_backup()
@@ -33,11 +34,10 @@ def load_backup():
 
 def save_backup():
     ts = int(time.time())
-    path = os.path.join(DATA_DIR, f'backup_{ts}.json')
+    path = os.path.join(backup_dir, f'backup_{ts}.json')
     try:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump({'notes': notes, 'gens': gens}, f, ensure_ascii=False)
-        print(f'已备份到 {path}')
     except Exception as e:
         print('备份失败:', e)
 
@@ -46,12 +46,12 @@ def backup_loop():
         time.sleep(60)
         save_backup()
         # 保留最新40个备份文件
-        files = [f for f in os.listdir(DATA_DIR) if f.startswith('backup_') and f.endswith('.json')]
+        files = [f for f in os.listdir(backup_dir) if f.startswith('backup_') and f.endswith('.json')]
         if len(files) > 40:
             files.sort(reverse=True)
             for old in files[40:]:
                 try:
-                    os.remove(os.path.join(DATA_DIR, old))
+                    os.remove(os.path.join(backup_dir, old))
                 except Exception as e:
                     print('删除备份失败:', e)
 
@@ -86,7 +86,6 @@ async def save_note(hash: str, request: Request):
 from genlang.generator import generate_from_json
 @app.get("/gen/{hash}")
 def gen_text(hash: str, start: str = "START"):
-    print(f"gen_text {hash} {start}")
     payload = {"rules":gens.get(hash, "")}
     if False:
         payload.update({"start":start})
@@ -104,4 +103,4 @@ def index():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=80)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=80,reload=True)

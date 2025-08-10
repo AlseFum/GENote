@@ -5,7 +5,14 @@ const content = ref('')
 const hash = ref('')
 // 四态 + 额外错误态：
 // idle(无改动) / saving(有改动等待上传) / saved_recent(正常文本已上传5秒内) / gen_saved(生成器文本已上传) / error
-const saveStatus = ref('idle')
+const SS={
+    Idle:"idle",
+    SAVING:'saving',
+    SAVED_RECENT:'saved_recent',
+    GEN_SAVED:'gen_saved',
+    ERROR:'error'
+}
+const saveStatus = ref(SS.Idle)
 let savedRecentTimer = null
 const lastSavedContent = ref('')
 
@@ -21,7 +28,7 @@ function loadNote() {
         .then(data => {
             content.value = data.content || ''
             lastSavedContent.value = content.value
-            saveStatus.value = 'idle'
+            saveStatus.value = SS.Idle
             console.log('内容已加载')
         })
         .catch(e => {
@@ -76,7 +83,9 @@ async function saveNote() {
         if (window.parse) {
             try {
                 const gen = window.parse(content.value)
-                payload.gen = gen
+                payload.gen = gen;
+                console.log("Generated Generator");
+                console.log(gen);
             } catch (e) {
             }
         }
@@ -88,27 +97,27 @@ async function saveNote() {
         lastSavedContent.value = content.value
         // 生成器文本优先显示专用态；否则显示5秒“已上传”态
         if (payload.gen) {
-            saveStatus.value = 'gen_saved'
+            saveStatus.value = SS.GEN_SAVED
         } else {
-            saveStatus.value = 'saved_recent'
+            saveStatus.value = SS.SAVED_RECENT
             if (savedRecentTimer) clearTimeout(savedRecentTimer)
             savedRecentTimer = setTimeout(() => {
                 // 若这段时间内没有新的改动，则回到无改动态
                 if (content.value === lastSavedContent.value && saveStatus.value === 'saved_recent') {
-                    saveStatus.value = 'idle'
+                    saveStatus.value = SS.Idle
                 }
             }, 5000)
         }
 
     } catch (e) {
-        saveStatus.value = 'error'
+        saveStatus.value = SS.ERROR
         console.error("保存失败", e)
     }
 }
 
 const throttledSave = throttle(saveNote, 5000)
 watch(content, () => {
-    saveStatus.value = 'saving'
+    saveStatus.value = SS.SAVING
     throttledSave();
 })
 
@@ -125,30 +134,30 @@ function handleKeydown(e) {
 <template>
     <main class="container">
         <div class="save-status-fixed">
-            <template v-if="saveStatus === 'idle'">
+            <template v-if="saveStatus === SS.Idle">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                     <circle cx="9" cy="9" r="8" stroke="#9aa0a6" stroke-width="2" />
                 </svg>
             </template>
-            <template v-else-if="saveStatus === 'saving'">
+            <template v-else-if="saveStatus === SS.SAVING">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                     <circle cx="9" cy="9" r="8" stroke="#646cff" stroke-width="2" />
                     <path d="M9 4v5l3 3" stroke="#646cff" stroke-width="2" fill="none" />
                 </svg>
             </template>
-            <template v-else-if="saveStatus === 'saved_recent'">
+            <template v-else-if="saveStatus === SS.SAVED_RECENT">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                     <circle cx="9" cy="9" r="8" stroke="#42b883" stroke-width="2" />
                     <path d="M5 9l2.5 2.5L13 6" stroke="#42b883" stroke-width="2" fill="none" />
                 </svg>
             </template>
-            <template v-else-if="saveStatus === 'gen_saved'">
+            <template v-else-if="saveStatus === SS.GEN_SAVED">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                     <circle cx="9" cy="9" r="8" stroke="#10b981" stroke-width="2" />
                     <path d="M6 9h6M9 6v6" stroke="#10b981" stroke-width="2" />
                 </svg>
             </template>
-            <template v-else>
+            <template v-else-if="saveStatus === SS.ERROR">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                     <circle cx="9" cy="9" r="8" stroke="#ff4d4f" stroke-width="2" />
                     <path d="M6 6l6 6M12 6l-6 6" stroke="#ff4d4f" stroke-width="2" />

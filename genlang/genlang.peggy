@@ -1,4 +1,3 @@
-// GenLang PEG grammar for peggy.js
 Start
 	= RuleList
 
@@ -33,26 +32,28 @@ Option
   }
 
 Element
-  =   (RefElement
-  / TerminalElement)
-//  / ExprElement
-
-ProbElement
-  = '^' prob:ProbExpr _ { return { type: 'prob', prob }; }
+  = RefElement
+  / TerminalElement
 
 RefElement
-  = '$' __ id:(QuotedString/Identifier) { return { type: 'ref', ref: id }; }
+  = '$' id:(QuotedString/Identifier) { return { type: 'ref', ref: id }; }
 
 TerminalElement
-  = str:EscapedChar+ { return { type: 'terminal', value: str }; }
-  / id:Identifier { return { type: 'terminal', value: id }; }
-
+  = t:(SimpleTerminal / QuotedString) { return { type: 't', value:t }; }
+ProbElement
+  = '^' prob:ProbExpr _ { return { type: 'prob', prob }; }
 ProbExpr
 	= '[' expr:Expression ']' { return expr; }
 	/ num:Number { return num; }
 
 Expression
 	= chars:[^|\n\]]+ { return chars.join('').trim(); }
+
+
+Identifier
+	= SimpleTerminal / QuotedString
+SimpleTerminal
+  = id:[a-zA-Z_][a-zA-Z0-9_]* { return text(); }
 
 QuotedString
   = '"' chars:EscapedChar* '"' { return chars.join(''); }
@@ -72,9 +73,6 @@ EscapeSequence
         default: return char;
       }
     }
-//   / "\\u" digits:[0-9a-fA-F]{4} {  return String.fromCharCode(parseInt(digits.join(''), 16));}
-Identifier
-	= id:[a-zA-Z_][a-zA-Z0-9_]* { return text(); }
 
 Number
 	= digits:[0-9]+ { return parseInt(text(), 10); }
