@@ -74,7 +74,7 @@ def choose_option(options,
                    rng: random.Random) -> Optional[int]:
     weights: List[float] = []
     for opt in options:
-        w = opt.get("prob",1)
+        w = eval_prob_expression(opt.get("prob",1), variables, rng)
         weights.append(max(0.0, w))
     total = sum(weights)
     if total <= 0:
@@ -89,7 +89,10 @@ def choose_option(options,
     return len(options) - 1
 
 
-def expand_option(opt: List[Dict[str, Any]], rules: Dict[str, List[List[Dict[str, Any]]]], variables: Dict[str, Any], rng: random.Random, depth: int) -> str:
+def expand_option(opt: List[Dict[str, Any]], 
+                  rules: Dict[str, List[List[Dict[str, Any]]]], 
+                  variables: Dict[str, Any], 
+                  rng: random.Random, depth: int) -> str:
     parts: List[str] = []
 
     for el in opt.get("elems",[]):
@@ -99,16 +102,19 @@ def expand_option(opt: List[Dict[str, Any]], rules: Dict[str, List[List[Dict[str
             continue
         if t == "terminal" or t == "t":
             parts.append(str(el.get("value", "")))
-        elif t == "ref":
+        elif t == "ref" or t == "r":
             ref = str(el.get("ref", ""))
-            parts.append(_expand_nonterminal(ref, rules, variables, rng, depth))
+            parts.append(expand_nonterminal(ref, rules, variables, rng, depth))
         else:
             print(f"unknown type {t}")
             parts.append(str(el))
     return "".join(parts)
 
 
-def _expand_nonterminal(name: str, rules: Dict[str, List[List[Dict[str, Any]]]], variables: Dict[str, Any], rng: random.Random, depth: int) -> str:
+def expand_nonterminal(name: str, 
+                       rules: Dict[str, List[List[Dict[str, Any]]]], 
+                       variables: Dict[str, Any], 
+                       rng: random.Random, depth: int) -> str:
     if depth <= 0:
         return "<stop for too deep>"
     options = rules.get(name)
@@ -117,21 +123,16 @@ def _expand_nonterminal(name: str, rules: Dict[str, List[List[Dict[str, Any]]]],
     idx = choose_option(options, variables, rng)
     if idx is None:
         return ""
-   
     return   expand_option(options[idx], rules, variables, rng, depth - 1)
 
 
 def generate_from_json(
     data: Any,
     start: Optional[str] = None,
-    variables: Optional[Dict[str, Any]] = None,
-    seed: Optional[int] = None,
+    variables: Optional[Dict[str, Any]] = None
 ) -> str:
     if isinstance(data, str):
         data = json.loads(data)
-    # if not isinstance(data, dict) or "rules" not in data:
-    #     raise ValueError(f"Expected schema-like JSON with 'rules' \n{data}")
-    # 仅取规则映射
     rules = data.get("rules") if isinstance(data.get("rules"), dict) else {}
     
     vars_final: Dict[str, Any] = {}
@@ -151,9 +152,8 @@ def generate_from_json(
     else:
         # 取第一个规则名（Python 3.7+ 字典有序）
         start_symbol = next(iter(rules.keys()), None)
-        print(f"start_symbol {start_symbol}")
         if not start_symbol:
             raise ValueError("rules is empty; no start symbol can be determined")
-    return _expand_nonterminal(start_symbol, rules, vars_final, MRng(), depth=128)
+    return expand_nonterminal(start_symbol, rules, vars_final, MRng(), depth=128)
 
 

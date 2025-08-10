@@ -26,6 +26,8 @@ npm run build
 ```bash
 cd backend
 uvicorn main:app --reload
+或者
+python -m backend.main
 默认在8000端口
 ```
 ### 测试DSL
