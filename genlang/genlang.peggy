@@ -44,7 +44,7 @@ RefElement
   = '$' __ id:(QuotedString/Identifier) { return { type: 'ref', ref: id }; }
 
 TerminalElement
-  = str:QuotedString { return { type: 'terminal', value: str }; }
+  = str:EscapedChar+ { return { type: 'terminal', value: str }; }
   / id:Identifier { return { type: 'terminal', value: id }; }
 
 ProbExpr

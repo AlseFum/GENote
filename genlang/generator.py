@@ -132,8 +132,7 @@ def generate_from_json(
     # if not isinstance(data, dict) or "rules" not in data:
     #     raise ValueError(f"Expected schema-like JSON with 'rules' \n{data}")
     # 仅取规则映射
-    print(f"What \n {data} :::{data.get("rules")}")
-    rules = data.get("rules") if isinstance(data.get("rules"), dict) else {"shit":[]}
+    rules = data.get("rules") if isinstance(data.get("rules"), dict) else {}
     
     vars_final: Dict[str, Any] = {}
     if isinstance(data.get("variables"), dict):
